@@ -38,8 +38,11 @@ foreach ($row in $data) {
     }
 }
 
+# Display processed data by condition
+$data = $data | Sort-Object -Property "Manufacturing Date"
+
 # Export processed results
-if($data) {
+if($data.Count -gt 0) {
     try {
         Write-Output "Removing last time dist folder files."
         if (Test-Path $distPath) {
