@@ -1,14 +1,21 @@
-# remove last time dist folder files
-Remove-Item -Path "/Users/michelle.wang/Desktop/auto_handle_csv/dist/*" -Recurse -Force
+# Import files
+Import-Module "./utils/handleMsgColor.psm1"
 
-# 1. Read CSV data
+# get date time
+$dateTime = Get-Date -Format "yyyyMMdd_HHmm"
+
+# change the path by the file path in your computer
 $csvPath = "/Users/michelle.wang/Desktop/auto_handle_csv/semiconductor_measurements.csv"
+$distPath = "/Users/michelle.wang/Desktop/auto_handle_csv/dist"
+
+$processData_CSV = $distPath + "/process_" + $dateTime + ".csv"
+$processData_HTML = $distPath + "/process_" + $dateTime + ".html"
+$failData_CSV = $distPath + "/fail_" + $dateTime + ".csv"
+
+# Read CSV data
 $data = Import-Csv -Path $csvPath
-$data | Get-Member
 
-Write-Output "data" $data
-
-# 2. Define quality criteria
+# Define quality criteria
 $lineWidthMin = 45
 $lineWidthMax = 55
 $filmThicknessMin = 100
@@ -17,7 +24,7 @@ $planarityMax = 5
 $overlayAccuracyMax = 10
 $roughnessMax = 2
 
-# 3. Process each row and determine pass/fail
+# Process each row and determine pass/fail
 foreach ($row in $data) {
     if ($row."Line Width (nm)" -ge $lineWidthMin -and $row."Line Width (nm)" -le $lineWidthMax -and
         $row."Film Thickness (nm)" -ge $filmThicknessMin -and $row."Film Thickness (nm)" -le $filmThicknessMax -and
@@ -31,21 +38,37 @@ foreach ($row in $data) {
     }
 }
 
-# 5. Export processed results
+# Export processed results
 if($data) {
-    # Export CSV
-    $data | Export-Csv "/Users/michelle.wang/Desktop/auto_handle_csv/dist/processed_semiconductor_data.csv" -NoTypeInformation
-    # Export HTML
-    $data | ConvertTo-Html | Out-File "/Users/michelle.wang/Desktop/auto_handle_csv/dist/processed_semiconductor_data.html"
-    # Export XML
-    $data | Export-Clixml "/Users/michelle.wang/Desktop/auto_handle_csv/dist/processed_semiconductor_data.xml"
+    try {
+        Write-Output "Removing last time dist folder files."
+        if (Test-Path $distPath) {
+            Remove-Item -Path (Join-Path $distPath "*") -Recurse -Force
+        } else {
+            Write-Output "Creating dist folder."
+            New-Item -ItemType Directory -Path $distPath | Out-Null
+        }
+
+        handleMsgColor "Exporting CSV to $processData_CSV" "DarkGreen"
+        # Export CSV
+        $data | Export-Csv $processData_CSV -NoTypeInformation
+        # Export HTML
+        $data | ConvertTo-Html | Out-File $processData_HTML
+    } catch {
+        handleMsgColor "Error: $_" "Red"
+    }
+} else {
+    handleMsgColor "No data found." "DarkYellow"
 }
 
 # Filter failed data and export separately
 $failedData = $data | Where-Object { $_.Quality -eq "Fail" }
 
-if($failedData) {
-    $failedData | Export-Csv "/Users/michelle.wang/Desktop/auto_handle_csv/dist/failed_semiconductor_data.csv" -NoTypeInformation
+if($failedData.Count -gt 0) {
+    handleMsgColor "Exporting failedData to $failData_CSV" "DarkGreen"
+    $failedData | Export-Csv $failData_CSV -NoTypeInformation
+}else {
+    handleMsgColor "No failed data found." "DarkYellow"
 }
 
-Write-Output "Processed data saved successfully."
+handleMsgColor "Processed data saved successfully. Please check $distPath" "DarkBlue"
