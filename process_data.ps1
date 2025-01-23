@@ -33,7 +33,12 @@ foreach ($row in $data) {
 
 # 5. Export processed results
 if($data) {
+    # Export CSV
     $data | Export-Csv "/Users/michelle.wang/Desktop/auto_handle_csv/dist/processed_semiconductor_data.csv" -NoTypeInformation
+    # Export HTML
+    $data | ConvertTo-Html | Out-File "/Users/michelle.wang/Desktop/auto_handle_csv/dist/processed_semiconductor_data.html"
+    # Export XML
+    $data | Export-Clixml "/Users/michelle.wang/Desktop/auto_handle_csv/dist/processed_semiconductor_data.xml"
 }
 
 # Filter failed data and export separately
