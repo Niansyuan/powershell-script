@@ -75,3 +75,36 @@ if($failedData.Count -gt 0) {
 }
 
 handleMsgColor "Processed data saved successfully. Please check $distPath" "DarkBlue"
+
+# Install required module
+Import-Module ImportExcel
+
+# Prepare Excel file path
+$chartPath = $distPath + "/DataChart_" + $dateTime + ".xlsx"
+
+# Create a simple Excel file with the processed data
+$data | Export-Excel -Path $chartPath -WorksheetName "Data"
+
+# Create a histogram chart for Film Thickness distribution
+$excelPackage = Open-ExcelPackage -Path $chartPath
+$ws = $excelPackage.Workbook.Worksheets["Data"]
+
+# Set up the chart
+$chart = $ws.Drawings.AddChart("Film Thickness Distribution", "BarClustered")
+$chart.SetPosition(1, 0, 9, 0) # Row, offset, column, offset
+$chart.SetSize(600, 400)
+
+# Determine row count from the worksheet itself
+$startRow = 2
+$endRow = $ws.Dimension.End.Row
+
+# Define X and Y data ranges (Manufacturing date is in column A and film thickness in column D)
+$yRange = "Data!D$($startRow):D$($endRow)"
+$xRange = "Data!A$($startRow):A$($endRow)"
+$chart.Series.Add($yRange, $xRange)
+$chart.Title.Text = "Film Thickness Distribution"
+
+# Save and close the package
+Close-ExcelPackage $excelPackage
+
+Write-Output "Chart generated successfully at $chartPath"
