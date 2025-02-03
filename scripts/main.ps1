@@ -1,12 +1,13 @@
 Import-Module "../utils/handleMsgColor.psm1"
 Import-Module "./dataProcessing.psm1"
 Import-Module "./handleChart.psm1" -DisableNameChecking
+Import-Module "./heightLightFailedProperty.psm1"
 
 # Paths and setup
 $dateTime = Get-Date -Format "yyyyMMdd_HHmm"
 $csvPath = "/Users/michelle.wang/Desktop/auto_handle_csv/semiconductor_measurements.csv"
 $distPath = "/Users/michelle.wang/Desktop/auto_handle_csv/dist"
-$chartPath = $distPath + "/DataChart_" + $dateTime + ".xlsx"
+$exportPath = $distPath + "/export_" + $dateTime + ".xlsx"
 $failDataPath = $distPath + "/fail_" + $dateTime + ".xlsx"
 
 $worksheetName = "Data"
@@ -41,9 +42,9 @@ if ($data.Count -gt 0) {
 
         handleMsgColor "Processing and chart creation starting." "DarkBlue"
 
-        Create-Chart $data $worksheetName $chartPath $chartType
+        Create-Chart $data $worksheetName $exportPath $chartType
 
-        handleMsgColor "Processed data and chart successfully created. $chartPath" "DarkBlue"
+        handleMsgColor "Processed data and chart successfully created. $exportPath" "DarkBlue"
     } catch {
         handleMsgColor "Error: $_" "Red"
     }
@@ -56,7 +57,9 @@ $failedData = $data | Where-Object { $_.Quality -eq "Fail" }
 
 if ($failedData.Count -gt 0) {
     handleMsgColor "Exporting failedData to $failDataPath" "DarkGreen"
-    $failedData | Export-Excel $failDataPath
+    $failedData | Export-Excel $failDataPath -worksheetName $worksheetName -AutoSize
+    # highlight failed data by property
+    Find-FailedProperty $failedData $limits $failDataPath
 } else {
     handleMsgColor "No failed data found." "DarkYellow"
 }
